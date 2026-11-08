@@ -1,0 +1,1 @@
+try{document.documentElement.dataset.theme=localStorage.getItem('lf.theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark')}catch(e){document.documentElement.dataset.theme='dark'}
