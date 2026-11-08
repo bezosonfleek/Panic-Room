@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: panicroom
+      POSTGRES_DB: panicroom
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panicroom"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  api:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://panicroom:${POSTGRES_PASSWORD}@db:5432/panicroom
+      ORIGIN: ${ORIGIN:-https://localhost}
+    depends_on:
+      db: { condition: service_healthy }
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web:/srv:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
